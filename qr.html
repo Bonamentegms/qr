@@ -1,37 +1,65 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Tu código QR</title>
+  <meta charset="UTF-8" />
+  <title>QR Pedido</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 100px;
-    }
-    .qr {
-      margin-top: 30px;
-    }
+    body { font-family: Arial, sans-serif; text-align: center; padding: 2em; }
+    #qr { margin: 1em auto; }
+    .info { margin-top: 2em; font-size: 1.1em; }
   </style>
 </head>
 <body>
-  <h1>Gracias por tu pedido</h1>
-  <p>Presenta este código QR en el restaurante</p>
-  <div class="qr" id="qr-container"></div>
+  <h2>Tu código QR</h2>
+  <canvas id="qr"></canvas>
+  <div class="info" id="info">Cargando información del pedido...</div>
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    const cedula = params.get('cedula');
+    const cedula = params.get("cedula");
 
-    if (cedula) {
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${cedula}`;
-      const img = document.createElement("img");
-      img.src = qrUrl;
-      img.alt = "QR";
-      document.getElementById("qr-container").appendChild(img);
-    } else {
-      document.getElementById("qr-container").innerHTML = "<p>Falta la cédula en la URL</p>";
-    }
+    const qr = new QRious({
+      element: document.getElementById('qr'),
+      value: cedula,
+      size: 200
+    });
+
+    // Enlace de tu hoja de cálculo convertida en JSON
+    const SHEET_ID = '1Apfz0KugvEMqks7jVsby1VCOUC-MW8k_d2YxlpRbRkc';
+    const SHEET_NAME = 'Entrada';
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
+
+    fetch(url)
+      .then(res => res.text())
+      .then(text => {
+        const json = JSON.parse(text.substr(47).slice(0, -2));
+        const rows = json.table.rows;
+
+        // Buscar el último registro de la cédula
+        const datos = rows
+          .map(row => row.c.map(c => c ? c.v : ""))
+          .filter(r => r[2] === cedula)
+          .pop(); // toma el último
+
+        if (datos) {
+          const [fecha, nombre, cedula, tipoProducto, precio, , entregado] = datos;
+          document.getElementById("info").innerHTML = `
+            <strong>Nombre:</strong> ${nombre}<br>
+            <strong>Cédula:</strong> ${cedula}<br>
+            <strong>Producto:</strong> ${tipoProducto}<br>
+            <strong>Precio:</strong> $${precio}<br>
+            <strong>Entregado:</strong> ${entregado || 'No'}
+          `;
+        } else {
+          document.getElementById("info").innerText = "No se encontró información para esta cédula.";
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById("info").innerText = "Error al cargar los datos.";
+      });
   </script>
 </body>
 </html>
+
