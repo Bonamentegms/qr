@@ -1,10 +1,10 @@
 <script>
   const params = new URLSearchParams(window.location.search);
-  const cedula = params.get("cedula").toString().trim();
+  const cedula = params.get("cedula")?.toString().trim();
 
   const qr = new QRious({
     element: document.getElementById('qr'),
-    value: cedula,
+    value: cedula || "Cédula no definida",
     size: 200
   });
 
@@ -15,12 +15,13 @@
   fetch(url)
     .then(res => res.text())
     .then(text => {
-      const json = JSON.parse(text.substr(47).slice(0, -2));
+      const json = JSON.parse(text.substring(47).slice(0, -2));
       const rows = json.table.rows;
 
+      // Buscar por columna F (índice 5), que contiene la cédula usada en el QR
       const datos = rows
-        .map(row => row.c.map(c => c ? c.v.toString().trim() : ""))
-        .filter(r => r[5] === cedula)  // Columna F: QR
+        .map(row => row.c.map(c => (c?.v ?? "").toString().trim()))
+        .filter(cells => cells[5] === cedula)
         .pop();
 
       if (datos) {
@@ -37,7 +38,7 @@
       }
     })
     .catch(err => {
-      console.error(err);
+      console.error("Error al consultar Google Sheets:", err);
       document.getElementById("info").innerText = "Error al cargar los datos.";
     });
 </script>
