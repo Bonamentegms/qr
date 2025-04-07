@@ -18,14 +18,13 @@
       const json = JSON.parse(text.substr(47).slice(0, -2));
       const rows = json.table.rows;
 
-      // Leer cada fila y convertir valores a texto
       const datos = rows
         .map(row => row.c.map(c => c ? c.v.toString().trim() : ""))
-        .filter(r => r[5] === cedula)  // Buscar por la columna F (QR)
-        .pop(); // Tomar el último registro
+        .filter(r => r[5] === cedula)  // Columna F: QR
+        .pop();
 
       if (datos) {
-        const [timestamp, nombre, cedulaReal, tipoProducto, precio, , entregado] = datos;
+        const [timestamp, nombre, cedulaReal, tipoProducto, precio, qrCedula, entregado] = datos;
         document.getElementById("info").innerHTML = `
           <strong>Nombre:</strong> ${nombre}<br>
           <strong>Cédula:</strong> ${cedulaReal}<br>
