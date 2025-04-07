@@ -2,25 +2,25 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>QR Pedido</title>
+  <title>Pedido Registrado</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; padding: 2em; }
     #qr { margin: 1em auto; }
-    .info { margin-top: 2em; font-size: 1.1em; }
+    #info { margin-top: 2em; font-size: 1.2em; }
   </style>
 </head>
 <body>
-  <h2>Tu código QR</h2>
+  <h2>Pedido Registrado</h2>
   <canvas id="qr"></canvas>
-  <div class="info" id="info">Cargando información del pedido...</div>
+  <div id="info">Cargando pedido...</div>
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    const cedula = params.get("cedula")?.toString().trim();
+    const cedula = params.get("cedula")?.trim();
 
     const qr = new QRious({
-      element: document.getElementById('qr'),
+      element: document.getElementById("qr"),
       value: cedula,
       size: 200
     });
@@ -35,22 +35,23 @@
         const json = JSON.parse(text.substr(47).slice(0, -2));
         const rows = json.table.rows;
 
-        const datos = rows
-          .map(row => row.c.map(c => c ? c.v.toString().trim() : ""))
-          .filter(r => r[5] === cedula) // Columna F: QR (solo cédula)
-          .pop(); // último registro
+        // Buscar el último pedido con esa cédula en la columna F (índice 5)
+        const pedido = rows
+          .map(r => r.c.map(c => c ? c.v.toString().trim() : ""))
+          .filter(r => r[5] === cedula)
+          .pop();  // tomar el último
 
-        if (datos) {
-          const [timestamp, nombre, cedulaReal, tipoProducto, precio, , entregado] = datos;
+        if (pedido) {
+          const [fecha, nombre, cedulaReal, producto, precio, , entregado] = pedido;
           document.getElementById("info").innerHTML = `
             <strong>Nombre:</strong> ${nombre}<br>
             <strong>Cédula:</strong> ${cedulaReal}<br>
-            <strong>Producto:</strong> ${tipoProducto}<br>
+            <strong>Producto:</strong> ${producto}<br>
             <strong>Precio:</strong> $${precio}<br>
             <strong>Entregado:</strong> ${entregado || 'No'}
           `;
         } else {
-          document.getElementById("info").innerText = "No se encontró información para esta cédula.";
+          document.getElementById("info").innerText = "No se encontró el pedido para esta cédula.";
         }
       })
       .catch(err => {
