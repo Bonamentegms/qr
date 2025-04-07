@@ -1,44 +1,62 @@
-<script>
-  const params = new URLSearchParams(window.location.search);
-  const cedula = params.get("cedula")?.toString().trim();
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>QR Pedido</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 2em; }
+    #qr { margin: 1em auto; }
+    .info { margin-top: 2em; font-size: 1.1em; }
+  </style>
+</head>
+<body>
+  <h2>Tu código QR</h2>
+  <canvas id="qr"></canvas>
+  <div class="info" id="info">Cargando información del pedido...</div>
 
-  const qr = new QRious({
-    element: document.getElementById('qr'),
-    value: cedula || "Cédula no definida",
-    size: 200
-  });
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const cedula = params.get("cedula")?.toString().trim();
 
-  const SHEET_ID = '1Apfz0KugvEMqks7jVsby1VCOUC-MW8k_d2YxlpRbRkc';
-  const SHEET_NAME = 'Entrada';
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
-
-  fetch(url)
-    .then(res => res.text())
-    .then(text => {
-      const json = JSON.parse(text.substring(47).slice(0, -2));
-      const rows = json.table.rows;
-
-      // Buscar por columna F (índice 5), que contiene la cédula usada en el QR
-      const datos = rows
-        .map(row => row.c.map(c => (c?.v ?? "").toString().trim()))
-        .filter(cells => cells[5] === cedula)
-        .pop();
-
-      if (datos) {
-        const [timestamp, nombre, cedulaReal, tipoProducto, precio, qrCedula, entregado] = datos;
-        document.getElementById("info").innerHTML = `
-          <strong>Nombre:</strong> ${nombre}<br>
-          <strong>Cédula:</strong> ${cedulaReal}<br>
-          <strong>Producto:</strong> ${tipoProducto}<br>
-          <strong>Precio:</strong> $${precio}<br>
-          <strong>Entregado:</strong> ${entregado || 'No'}
-        `;
-      } else {
-        document.getElementById("info").innerText = "No se encontró información para esta cédula.";
-      }
-    })
-    .catch(err => {
-      console.error("Error al consultar Google Sheets:", err);
-      document.getElementById("info").innerText = "Error al cargar los datos.";
+    const qr = new QRious({
+      element: document.getElementById('qr'),
+      value: cedula,
+      size: 200
     });
-</script>
+
+    const SHEET_ID = '1Apfz0KugvEMqks7jVsby1VCOUC-MW8k_d2YxlpRbRkc';
+    const SHEET_NAME = 'Entrada';
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
+
+    fetch(url)
+      .then(res => res.text())
+      .then(text => {
+        const json = JSON.parse(text.substr(47).slice(0, -2));
+        const rows = json.table.rows;
+
+        const datos = rows
+          .map(row => row.c.map(c => c ? c.v.toString().trim() : ""))
+          .filter(r => r[5] === cedula) // Columna F: QR (solo cédula)
+          .pop(); // último registro
+
+        if (datos) {
+          const [timestamp, nombre, cedulaReal, tipoProducto, precio, , entregado] = datos;
+          document.getElementById("info").innerHTML = `
+            <strong>Nombre:</strong> ${nombre}<br>
+            <strong>Cédula:</strong> ${cedulaReal}<br>
+            <strong>Producto:</strong> ${tipoProducto}<br>
+            <strong>Precio:</strong> $${precio}<br>
+            <strong>Entregado:</strong> ${entregado || 'No'}
+          `;
+        } else {
+          document.getElementById("info").innerText = "No se encontró información para esta cédula.";
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById("info").innerText = "Error al cargar los datos.";
+      });
+  </script>
+</body>
+</html>
