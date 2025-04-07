@@ -18,17 +18,17 @@
       const json = JSON.parse(text.substr(47).slice(0, -2));
       const rows = json.table.rows;
 
-      // Buscar el último registro que coincida con la cédula
+      // Leer cada fila y convertir valores a texto
       const datos = rows
-        .map(row => row.c.map(c => c ? c.v.toString().trim() : "")) // ← aquí convertimos todo a texto limpio
-        .filter(r => r[2] === cedula)
-        .pop(); // toma el último coincidencia
+        .map(row => row.c.map(c => c ? c.v.toString().trim() : ""))
+        .filter(r => r[5] === cedula)  // Buscar por la columna F (QR)
+        .pop(); // Tomar el último registro
 
       if (datos) {
-        const [fecha, nombre, cedulaVal, tipoProducto, precio, , entregado] = datos;
+        const [timestamp, nombre, cedulaReal, tipoProducto, precio, , entregado] = datos;
         document.getElementById("info").innerHTML = `
           <strong>Nombre:</strong> ${nombre}<br>
-          <strong>Cédula:</strong> ${cedulaVal}<br>
+          <strong>Cédula:</strong> ${cedulaReal}<br>
           <strong>Producto:</strong> ${tipoProducto}<br>
           <strong>Precio:</strong> $${precio}<br>
           <strong>Entregado:</strong> ${entregado || 'No'}
