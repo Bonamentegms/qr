@@ -1,63 +1,67 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Pedido Registrado</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 2em; }
-    #qr { margin: 1em auto; }
-    #info { margin-top: 2em; font-size: 1.2em; }
-  </style>
-</head>
-<body>
-  <h2>Pedido Registrado</h2>
-  <canvas id="qr"></canvas>
-  <div id="info">Cargando pedido...</div>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Pedido de Comida</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 2em;
+        background: #f9f9f9;
+      }
+      .card {
+        background: white;
+        padding: 1.5em;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        max-width: 400px;
+        margin: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>Detalle del Pedido</h2>
+      <p id="info">Cargando datos...</p>
+    </div>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const cedula = params.get("cedula")?.trim();
+    <script>
+      const urlParams = new URLSearchParams(window.location.search);
+      const cedula = urlParams.get("cedula");
 
-    const qr = new QRious({
-      element: document.getElementById("qr"),
-      value: cedula,
-      size: 200
-    });
+      const sheetUrl = "https://docs.google.com/spreadsheets/d/1Apfz0KugvEMqks7jVsby1VCOUC-MW8k_d2YxlpRbRkc/gviz/tq?tqx=out:json&sheet=Entrada";
 
-    const SHEET_ID = '1Apfz0KugvEMqks7jVsby1VCOUC-MW8k_d2YxlpRbRkc';
-    const SHEET_NAME = 'Entrada';
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
+      fetch(sheetUrl)
+        .then(res => res.text())
+        .then(text => {
+          const jsonText = text.match(/google\.visualization\.Query\.setResponse\((.*)\);/s)[1];
+          const data = JSON.parse(jsonText);
+          const rows = data.table.rows;
 
-    fetch(url)
-      .then(res => res.text())
-      .then(text => {
-        const json = JSON.parse(text.substr(47).slice(0, -2));
-        const rows = json.table.rows;
+          // Filtrar por cédula
+          const result = rows.reverse().find(row => row.c[2] && row.c[2].f === cedula);
+          
+          if (result) {
+            const nombre = result.c[1]?.v || "Sin nombre";
+            const producto = result.c[3]?.v || "Sin producto";
+            const precio = result.c[4]?.f || "Sin precio";
+            const fecha = result.c[0]?.f || "Sin fecha";
 
-        // Buscar el último pedido con esa cédula en la columna F (índice 5)
-        const pedido = rows
-          .map(r => r.c.map(c => c ? c.v.toString().trim() : ""))
-          .filter(r => r[5] === cedula)
-          .pop();  // tomar el último
-
-        if (pedido) {
-          const [fecha, nombre, cedulaReal, producto, precio, , entregado] = pedido;
-          document.getElementById("info").innerHTML = `
-            <strong>Nombre:</strong> ${nombre}<br>
-            <strong>Cédula:</strong> ${cedulaReal}<br>
-            <strong>Producto:</strong> ${producto}<br>
-            <strong>Precio:</strong> $${precio}<br>
-            <strong>Entregado:</strong> ${entregado || 'No'}
-          `;
-        } else {
-          document.getElementById("info").innerText = "No se encontró el pedido para esta cédula.";
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        document.getElementById("info").innerText = "Error al cargar los datos.";
-      });
-  </script>
-</body>
+            document.getElementById("info").innerHTML = `
+              <strong>Nombre:</strong> ${nombre}<br>
+              <strong>Cédula:</strong> ${cedula}<br>
+              <strong>Producto:</strong> ${producto}<br>
+              <strong>Precio:</strong> ${precio}<br>
+              <strong>Fecha:</strong> ${fecha}
+            `;
+          } else {
+            document.getElementById("info").innerText = "No se encontró el pedido.";
+          }
+        })
+        .catch(err => {
+          console.error("Error al cargar datos:", err);
+          document.getElementById("info").innerText = "Error al cargar los datos.";
+        });
+    </script>
+  </body>
 </html>
