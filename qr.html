@@ -1,86 +1,83 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Pedido Registrado</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 2em;
-    }
-    #info {
-      margin-top: 1em;
-    }
-  </style>
-</head>
-<body>
-  <h2>Pedido Registrado</h2>
-  <canvas id="qr"></canvas>
-  <p id="info">Cargando datos...</p>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Pedido Registrado</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 2em;
+      }
+      #info {
+        margin-top: 1em;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Pedido Registrado</h2>
+    <canvas id="qr"></canvas>
+    <p id="info">Cargando datos...</p>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const cedula = params.get("cedula");
+    <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const cedula = params.get("cedula");
 
-    if (!cedula) {
-      document.getElementById("info").innerText = "Cédula no especificada en la URL.";
-      throw new Error("Falta parámetro 'cedula'");
-    }
+      if (!cedula) {
+        document.getElementById("info").innerText = "Cédula no especificada en la URL.";
+        throw new Error("Falta parámetro 'cedula'");
+      }
 
-    // ✅ Enlace a tu Apps Script Web App con parámetro cedula
-    const qrURL = `https://script.google.com/macros/s/AKfycby0z4h8ww-Wn91B54qB97M2VRSh_lMzeqrUG3IOKTo9c8Ng7h4zf8EnSL-I2JOp4S42/exec?cedula=${encodeURIComponent(cedula)}`;
-
-    // ✅ Generar y mostrar el código QR
-    new QRious({
-      element: document.getElementById('qr'),
-      value: qrURL,
-      size: 200
-    });
-
-    // ✅ Cargar datos del pedido desde la hoja de cálculo
-    const SHEET_URL = "https://docs.google.com/spreadsheets/d/1Apfz0KugvEMqks7jVsby1VCOUC-MW8k_d2YxlpRbRkc/gviz/tq?tqx=out:json&sheet=Entrada";
-
-    fetch(SHEET_URL)
-      .then(res => res.text())
-      .then(text => {
-        const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\);/);
-        if (!match) {
-          document.getElementById("info").innerText = "Formato de respuesta inesperado.";
-          throw new Error("No se encontró setResponse en el texto");
-        }
-
-        const json = JSON.parse(match[1]);
-        const rows = json.table.rows;
-
-        // Buscar el último registro por cédula (columna C)
-        const pedido = rows.reverse().find(r => {
-          const celdaCedula = r.c[2];
-          return celdaCedula && celdaCedula.v.toString().trim() === cedula;
-        });
-
-        if (pedido) {
-          const nombre = pedido.c[1]?.v || "Sin nombre";
-          const producto = pedido.c[3]?.v || "Sin producto";
-          const precio = pedido.c[4]?.v || "Sin precio";
-          const fecha = pedido.c[0]?.f || "Sin fecha";
-
-          document.getElementById("info").innerHTML = `
-            <strong>Nombre:</strong> ${nombre}<br>
-            <strong>Cédula:</strong> ${cedula}<br>
-            <strong>Producto:</strong> ${producto}<br>
-            <strong>Precio:</strong> $${precio}<br>
-            <strong>Fecha:</strong> ${fecha}
-          `;
-        } else {
-          document.getElementById("info").innerText = "No se encontró ningún pedido para esta cédula.";
-        }
-      })
-      .catch(err => {
-        console.error("Error:", err);
-        document.getElementById("info").innerText = "Error al cargar los datos.";
+      // Mostrar el código QR que apunta al mismo enlace con la cédula
+      const qrURL = `https://script.google.com/macros/s/AKfycby0z4h8ww-Wn91B54qB97M2VRSh_lMzeqrUG3IOKTo9c8Ng7h4zf8EnSL-I2JOp4S42/exec?cedula=${encodeURIComponent(cedula)}`;
+      new QRious({
+        element: document.getElementById('qr'),
+        value: qrURL,
+        size: 200
       });
-  </script>
-</body>
+
+      // Leer datos del pedido desde la hoja pública
+      const SHEET_URL = "https://docs.google.com/spreadsheets/d/1Apfz0KugvEMqks7jVsby1VCOUC-MW8k_d2YxlpRbRkc/gviz/tq?tqx=out:json&sheet=Entrada";
+
+      fetch(SHEET_URL)
+        .then(res => res.text())
+        .then(text => {
+          const match = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]+)\);/);
+          if (!match) {
+            document.getElementById("info").innerText = "Formato de respuesta inesperado.";
+            throw new Error("No se encontró setResponse en el texto");
+          }
+
+          const json = JSON.parse(match[1]);
+          const rows = json.table.rows;
+
+          const pedido = rows.reverse().find(r => {
+            const celdaCedula = r.c[2];
+            return celdaCedula && celdaCedula.v.toString().trim() === cedula;
+          });
+
+          if (pedido) {
+            const nombre = pedido.c[1]?.v || "Sin nombre";
+            const producto = pedido.c[3]?.v || "Sin producto";
+            const precio = pedido.c[4]?.v || "Sin precio";
+            const fecha = pedido.c[0]?.f || "Sin fecha";
+
+            document.getElementById("info").innerHTML = `
+              <strong>Nombre:</strong> ${nombre}<br>
+              <strong>Cédula:</strong> ${cedula}<br>
+              <strong>Producto:</strong> ${producto}<br>
+              <strong>Precio:</strong> $${precio}<br>
+              <strong>Fecha:</strong> ${fecha}
+            `;
+          } else {
+            document.getElementById("info").innerText = "No se encontró ningún pedido para esta cédula.";
+          }
+        })
+        .catch(err => {
+          console.error("Error:", err);
+          document.getElementById("info").innerText = "Error al cargar los datos.";
+        });
+    </script>
+  </body>
 </html>
