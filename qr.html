@@ -62,13 +62,13 @@
             const precio = pedido.c[4]?.v || "Sin precio";
             const fecha = pedido.c[0]?.f || "Sin fecha";
 
-            document.getElementById("info").innerHTML = 
+            document.getElementById("info").innerHTML = `
               <strong>Nombre:</strong> ${nombre}<br>
               <strong>Cédula:</strong> ${cedula}<br>
               <strong>Producto:</strong> ${producto}<br>
               <strong>Precio:</strong> $${precio}<br>
               <strong>Fecha:</strong> ${fecha}
-            ;
+            `;
           } else {
             document.getElementById("info").innerText = "No se encontró ningún pedido para esta cédula.";
           }
@@ -79,4 +79,4 @@
         });
     </script>
   </body>
-</html> 
+</html>
