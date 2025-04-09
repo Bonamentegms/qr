@@ -21,8 +21,12 @@
     const scriptURL = "https://script.google.com/macros/s/AKfycbza7k05RSU4jw1Z_PGSEn4AQbd8UEBvYW9KC8PaLrgCCOh-QRYlmBp0rnfm5uoi529g/exec";
 
     fetch(`${scriptURL}?cedula=${cedula}`)
-      .then(res => res.json())
+      .then(res => {
+        console.log("Respuesta cruda recibida:", res); // 💬 Log de respuesta
+        return res.json(); // intento de conversión a JSON
+      })
       .then(data => {
+        console.log("Respuesta JSON:", data); // ✅ LOG PRINCIPAL
         if (!data || !data.nombre) {
           document.getElementById("info").innerHTML = "<p>No se encontró información para esta cédula.</p>";
           return;
@@ -42,6 +46,10 @@
             <button onclick="marcarEntregado()">✅ Marcar como Entregado</button>
           `;
         }
+      })
+      .catch(err => {
+        console.error("❌ Error al procesar JSON:", err);
+        document.getElementById("info").innerHTML = "<p>Error al cargar los datos. Revisa la consola (F12).</p>";
       });
 
     function marcarEntregado() {
